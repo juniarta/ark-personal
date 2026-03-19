@@ -231,3 +231,196 @@ pub struct UpdateTransmitterPayload {
     pub is_pvp: Option<bool>,
     pub timer_duration_s: Option<i32>,
 }
+
+// ─── Category ──────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Category {
+    pub id: String,
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: i32,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCategoryPayload {
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCategoryPayload {
+    pub name: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: Option<i32>,
+}
+
+// ─── Category Field ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryField {
+    pub id: String,
+    pub category_id: String,
+    pub field_name: String,
+    pub field_type: String,
+    pub options: Option<String>,
+    pub is_required: bool,
+    pub sort_order: i32,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct CategoryFieldRow {
+    pub id: String,
+    pub category_id: String,
+    pub field_name: String,
+    pub field_type: String,
+    pub options: Option<String>,
+    pub is_required: i32,
+    pub sort_order: i32,
+    pub created_at: String,
+}
+
+impl From<CategoryFieldRow> for CategoryField {
+    fn from(row: CategoryFieldRow) -> Self {
+        CategoryField {
+            id: row.id,
+            category_id: row.category_id,
+            field_name: row.field_name,
+            field_type: row.field_type,
+            options: row.options,
+            is_required: row.is_required != 0,
+            sort_order: row.sort_order,
+            created_at: row.created_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCategoryFieldPayload {
+    pub category_id: String,
+    pub field_name: String,
+    pub field_type: String,
+    pub options: Option<String>,
+    pub is_required: Option<bool>,
+    pub sort_order: Option<i32>,
+}
+
+// ─── Inventory Item ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct InventoryItem {
+    pub id: String,
+    pub category_id: String,
+    pub auction_id: Option<String>,
+    pub name: String,
+    pub quantity: i32,
+    pub field_data: Option<String>,
+    pub status: String,
+    pub acquired_at: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateInventoryItemPayload {
+    pub category_id: String,
+    pub auction_id: Option<String>,
+    pub name: String,
+    pub quantity: Option<i32>,
+    pub field_data: Option<String>,
+    pub status: Option<String>,
+    pub acquired_at: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateInventoryItemPayload {
+    pub name: Option<String>,
+    pub quantity: Option<i32>,
+    pub field_data: Option<String>,
+    pub status: Option<String>,
+    pub notes: Option<String>,
+}
+
+// ─── Transaction ───────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Transaction {
+    pub id: String,
+    pub transaction_type: String,
+    pub auction_id: Option<String>,
+    pub inventory_item_id: Option<String>,
+    pub description: String,
+    pub ig_amount: Option<f64>,
+    pub ig_currency: Option<String>,
+    pub real_amount: Option<f64>,
+    pub real_currency: Option<String>,
+    pub counterparty: Option<String>,
+    pub transaction_date: String,
+    pub notes: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTransactionPayload {
+    pub transaction_type: String,
+    pub auction_id: Option<String>,
+    pub inventory_item_id: Option<String>,
+    pub description: String,
+    pub ig_amount: Option<f64>,
+    pub ig_currency: Option<String>,
+    pub real_amount: Option<f64>,
+    pub real_currency: Option<String>,
+    pub counterparty: Option<String>,
+    pub transaction_date: String,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTransactionPayload {
+    pub description: Option<String>,
+    pub ig_amount: Option<f64>,
+    pub ig_currency: Option<String>,
+    pub real_amount: Option<f64>,
+    pub real_currency: Option<String>,
+    pub counterparty: Option<String>,
+    pub notes: Option<String>,
+}
+
+// ─── Summary types ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct CurrencySummary {
+    pub currency: Option<String>,
+    pub total: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpenseSummary {
+    pub ig_totals: Vec<CurrencySummary>,
+    pub real_totals: Vec<CurrencySummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct MonthlySummaryRow {
+    pub month: String,
+    pub ig_expense: f64,
+    pub ig_income: f64,
+    pub real_expense: f64,
+    pub real_income: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct CategoryItemCount {
+    pub category_id: String,
+    pub count: i32,
+}

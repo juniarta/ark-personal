@@ -47,5 +47,9 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await?;
 
+    sqlx::raw_sql(include_str!("migrations/003_inventory_expense.sql"))
+        .execute(pool)
+        .await?;
+
     Ok(())
 }

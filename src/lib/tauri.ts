@@ -11,6 +11,19 @@ import type {
   CreateTransmitterPayload,
   UpdateTransmitterPayload,
   ArkOfficialServer,
+  Category,
+  CreateCategoryPayload,
+  UpdateCategoryPayload,
+  CategoryField,
+  CreateCategoryFieldPayload,
+  InventoryItem,
+  CreateInventoryItemPayload,
+  UpdateInventoryItemPayload,
+  Transaction,
+  CreateTransactionPayload,
+  UpdateTransactionPayload,
+  ProfitLoss,
+  MonthlySummary,
 } from './types';
 
 // Lazy import invoke to avoid issues during SSG build
@@ -155,4 +168,127 @@ export async function getSetting(key: string): Promise<string | null> {
 export async function setSetting(key: string, value: string): Promise<void> {
   const invoke = await getInvoke();
   return invoke<void>('set_setting', { key, value });
+}
+
+// ── Inventory Category commands ───────────────────────────────────────────────
+
+export async function createCategory(payload: CreateCategoryPayload): Promise<Category> {
+  const invoke = await getInvoke();
+  return invoke<Category>('create_category', { payload });
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const invoke = await getInvoke();
+  return invoke<Category[]>('get_categories');
+}
+
+export async function updateCategory(id: string, payload: UpdateCategoryPayload): Promise<Category> {
+  const invoke = await getInvoke();
+  return invoke<Category>('update_category', { id, payload });
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const invoke = await getInvoke();
+  return invoke<void>('delete_category', { id });
+}
+
+// ── Inventory Category Field commands ─────────────────────────────────────────
+
+export async function addCategoryField(payload: CreateCategoryFieldPayload): Promise<CategoryField> {
+  const invoke = await getInvoke();
+  return invoke<CategoryField>('add_category_field', { payload });
+}
+
+export async function getCategoryFields(categoryId: string): Promise<CategoryField[]> {
+  const invoke = await getInvoke();
+  return invoke<CategoryField[]>('get_category_fields', { categoryId });
+}
+
+export async function removeCategoryField(id: string): Promise<void> {
+  const invoke = await getInvoke();
+  return invoke<void>('remove_category_field', { id });
+}
+
+// ── Inventory Item commands ───────────────────────────────────────────────────
+
+export async function createInventoryItem(payload: CreateInventoryItemPayload): Promise<InventoryItem> {
+  const invoke = await getInvoke();
+  return invoke<InventoryItem>('create_inventory_item', { payload });
+}
+
+export async function getInventoryItems(): Promise<InventoryItem[]> {
+  const invoke = await getInvoke();
+  return invoke<InventoryItem[]>('get_inventory_items');
+}
+
+export async function getInventoryByCategory(categoryId: string): Promise<InventoryItem[]> {
+  const invoke = await getInvoke();
+  return invoke<InventoryItem[]>('get_inventory_by_category', { categoryId });
+}
+
+export async function updateInventoryItem(id: string, payload: UpdateInventoryItemPayload): Promise<InventoryItem> {
+  const invoke = await getInvoke();
+  return invoke<InventoryItem>('update_inventory_item', { id, payload });
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+  const invoke = await getInvoke();
+  return invoke<void>('delete_inventory_item', { id });
+}
+
+export async function searchInventory(query: string): Promise<InventoryItem[]> {
+  const invoke = await getInvoke();
+  return invoke<InventoryItem[]>('search_inventory', { query });
+}
+
+// ── Transaction / Expense commands ───────────────────────────────────────────
+
+export async function createTransaction(payload: CreateTransactionPayload): Promise<Transaction> {
+  const invoke = await getInvoke();
+  return invoke<Transaction>('create_transaction', { payload });
+}
+
+export async function getTransactions(): Promise<Transaction[]> {
+  const invoke = await getInvoke();
+  return invoke<Transaction[]>('get_transactions');
+}
+
+export async function getTransactionsByType(transactionType: string): Promise<Transaction[]> {
+  const invoke = await getInvoke();
+  return invoke<Transaction[]>('get_transactions_by_type', { transactionType });
+}
+
+export async function getTransactionsByDateRange(startDate: string, endDate: string): Promise<Transaction[]> {
+  const invoke = await getInvoke();
+  return invoke<Transaction[]>('get_transactions_by_date_range', { startDate, endDate });
+}
+
+export async function updateTransaction(id: string, payload: UpdateTransactionPayload): Promise<Transaction> {
+  const invoke = await getInvoke();
+  return invoke<Transaction>('update_transaction', { id, payload });
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  const invoke = await getInvoke();
+  return invoke<void>('delete_transaction', { id });
+}
+
+export async function getExpenseSummary(): Promise<MonthlySummary[]> {
+  const invoke = await getInvoke();
+  return invoke<MonthlySummary[]>('get_expense_summary');
+}
+
+export async function getIncomeSummary(): Promise<MonthlySummary[]> {
+  const invoke = await getInvoke();
+  return invoke<MonthlySummary[]>('get_income_summary');
+}
+
+export async function getProfitLoss(): Promise<ProfitLoss> {
+  const invoke = await getInvoke();
+  return invoke<ProfitLoss>('get_profit_loss');
+}
+
+export async function getMonthlySummary(): Promise<MonthlySummary[]> {
+  const invoke = await getInvoke();
+  return invoke<MonthlySummary[]>('get_monthly_summary');
 }

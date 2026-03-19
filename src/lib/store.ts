@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import type { Auction, Alarm, TransmitterServer, ArkOfficialServer, CreateTransmitterPayload, UpdateTransmitterPayload } from './types';
+import type {
+  Auction, Alarm, TransmitterServer, ArkOfficialServer, CreateTransmitterPayload, UpdateTransmitterPayload,
+  Category, CategoryField, InventoryItem,
+  CreateCategoryPayload, UpdateCategoryPayload, CreateCategoryFieldPayload,
+  CreateInventoryItemPayload, UpdateInventoryItemPayload,
+  Transaction, CreateTransactionPayload, UpdateTransactionPayload,
+  ProfitLoss, MonthlySummary,
+} from './types';
 import * as tauri from './tauri';
 
 // ── Auction Store ─────────────────────────────────────────────────────────────
@@ -276,5 +283,242 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setTheme: async (theme) => {
     await tauri.setSetting('theme', theme);
     set({ theme });
+  },
+}));
+
+// ── Inventory Store ───────────────────────────────────────────────────────────
+
+interface InventoryStore {
+  categories: Category[];
+  items: InventoryItem[];
+  fields: CategoryField[];
+  loading: boolean;
+  error: string | null;
+
+  fetchCategories: () => Promise<void>;
+  createCategory: (payload: CreateCategoryPayload) => Promise<Category>;
+  updateCategory: (id: string, payload: UpdateCategoryPayload) => Promise<Category>;
+  deleteCategory: (id: string) => Promise<void>;
+
+  fetchCategoryFields: (categoryId: string) => Promise<void>;
+  addField: (payload: CreateCategoryFieldPayload) => Promise<CategoryField>;
+  removeField: (id: string) => Promise<void>;
+
+  fetchItems: () => Promise<void>;
+  fetchItemsByCategory: (categoryId: string) => Promise<void>;
+  createItem: (payload: CreateInventoryItemPayload) => Promise<InventoryItem>;
+  updateItem: (id: string, payload: UpdateInventoryItemPayload) => Promise<InventoryItem>;
+  deleteItem: (id: string) => Promise<void>;
+  searchItems: (query: string) => Promise<void>;
+}
+
+export const useInventoryStore = create<InventoryStore>((set) => ({
+  categories: [],
+  items: [],
+  fields: [],
+  loading: false,
+  error: null,
+
+  fetchCategories: async () => {
+    set({ loading: true, error: null });
+    try {
+      const categories = await tauri.getCategories();
+      set({ categories, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  createCategory: async (payload) => {
+    const category = await tauri.createCategory(payload);
+    set((state) => ({ categories: [...state.categories, category] }));
+    return category;
+  },
+
+  updateCategory: async (id, payload) => {
+    const updated = await tauri.updateCategory(id, payload);
+    set((state) => ({
+      categories: state.categories.map((c) => (c.id === id ? updated : c)),
+    }));
+    return updated;
+  },
+
+  deleteCategory: async (id) => {
+    await tauri.deleteCategory(id);
+    set((state) => ({
+      categories: state.categories.filter((c) => c.id !== id),
+    }));
+  },
+
+  fetchCategoryFields: async (categoryId) => {
+    set({ loading: true, error: null });
+    try {
+      const fields = await tauri.getCategoryFields(categoryId);
+      set({ fields, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  addField: async (payload) => {
+    const field = await tauri.addCategoryField(payload);
+    set((state) => ({ fields: [...state.fields, field] }));
+    return field;
+  },
+
+  removeField: async (id) => {
+    await tauri.removeCategoryField(id);
+    set((state) => ({
+      fields: state.fields.filter((f) => f.id !== id),
+    }));
+  },
+
+  fetchItems: async () => {
+    set({ loading: true, error: null });
+    try {
+      const items = await tauri.getInventoryItems();
+      set({ items, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  fetchItemsByCategory: async (categoryId) => {
+    set({ loading: true, error: null });
+    try {
+      const items = await tauri.getInventoryByCategory(categoryId);
+      set({ items, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  createItem: async (payload) => {
+    const item = await tauri.createInventoryItem(payload);
+    set((state) => ({ items: [...state.items, item] }));
+    return item;
+  },
+
+  updateItem: async (id, payload) => {
+    const updated = await tauri.updateInventoryItem(id, payload);
+    set((state) => ({
+      items: state.items.map((i) => (i.id === id ? updated : i)),
+    }));
+    return updated;
+  },
+
+  deleteItem: async (id) => {
+    await tauri.deleteInventoryItem(id);
+    set((state) => ({
+      items: state.items.filter((i) => i.id !== id),
+    }));
+  },
+
+  searchItems: async (query) => {
+    set({ loading: true, error: null });
+    try {
+      const items = await tauri.searchInventory(query);
+      set({ items, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+}));
+
+// ── Expense Store ─────────────────────────────────────────────────────────────
+
+interface ExpenseStore {
+  transactions: Transaction[];
+  summary: ProfitLoss | null;
+  monthlySummary: MonthlySummary[];
+  loading: boolean;
+  error: string | null;
+
+  fetchTransactions: () => Promise<void>;
+  fetchByType: (transactionType: string) => Promise<void>;
+  fetchByDateRange: (startDate: string, endDate: string) => Promise<void>;
+  createTransaction: (payload: CreateTransactionPayload) => Promise<Transaction>;
+  updateTransaction: (id: string, payload: UpdateTransactionPayload) => Promise<Transaction>;
+  deleteTransaction: (id: string) => Promise<void>;
+  fetchProfitLoss: () => Promise<void>;
+  fetchMonthlySummary: () => Promise<void>;
+}
+
+export const useExpenseStore = create<ExpenseStore>((set) => ({
+  transactions: [],
+  summary: null,
+  monthlySummary: [],
+  loading: false,
+  error: null,
+
+  fetchTransactions: async () => {
+    set({ loading: true, error: null });
+    try {
+      const transactions = await tauri.getTransactions();
+      set({ transactions, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  fetchByType: async (transactionType) => {
+    set({ loading: true, error: null });
+    try {
+      const transactions = await tauri.getTransactionsByType(transactionType);
+      set({ transactions, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  fetchByDateRange: async (startDate, endDate) => {
+    set({ loading: true, error: null });
+    try {
+      const transactions = await tauri.getTransactionsByDateRange(startDate, endDate);
+      set({ transactions, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  createTransaction: async (payload) => {
+    const transaction = await tauri.createTransaction(payload);
+    set((state) => ({ transactions: [...state.transactions, transaction] }));
+    return transaction;
+  },
+
+  updateTransaction: async (id, payload) => {
+    const updated = await tauri.updateTransaction(id, payload);
+    set((state) => ({
+      transactions: state.transactions.map((t) => (t.id === id ? updated : t)),
+    }));
+    return updated;
+  },
+
+  deleteTransaction: async (id) => {
+    await tauri.deleteTransaction(id);
+    set((state) => ({
+      transactions: state.transactions.filter((t) => t.id !== id),
+    }));
+  },
+
+  fetchProfitLoss: async () => {
+    set({ loading: true, error: null });
+    try {
+      const summary = await tauri.getProfitLoss();
+      set({ summary, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  fetchMonthlySummary: async () => {
+    set({ loading: true, error: null });
+    try {
+      const monthlySummary = await tauri.getMonthlySummary();
+      set({ monthlySummary, loading: false });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
   },
 }));

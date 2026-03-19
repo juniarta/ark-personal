@@ -102,6 +102,148 @@ export interface ParsedAuctionText {
   raw_text: string;
 }
 
+// ── Inventory types ───────────────────────────────────────────────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryField {
+  id: string;
+  category_id: string;
+  field_name: string;
+  field_type: 'text' | 'number' | 'dropdown' | 'date' | 'boolean';
+  options: string | null; // JSON array for dropdown
+  is_required: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  category_id: string;
+  auction_id: string | null;
+  name: string;
+  quantity: number;
+  field_data: string | null; // JSON object
+  status: 'owned' | 'sold' | 'traded' | 'lost';
+  acquired_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCategoryPayload {
+  name: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+}
+
+export interface UpdateCategoryPayload {
+  name?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+}
+
+export interface CreateCategoryFieldPayload {
+  category_id: string;
+  field_name: string;
+  field_type: string;
+  options?: string;
+  is_required?: boolean;
+  sort_order?: number;
+}
+
+export interface CreateInventoryItemPayload {
+  category_id: string;
+  auction_id?: string;
+  name: string;
+  quantity?: number;
+  field_data?: string;
+  status?: string;
+  acquired_at?: string;
+  notes?: string;
+}
+
+export interface UpdateInventoryItemPayload {
+  name?: string;
+  quantity?: number;
+  field_data?: string;
+  status?: string;
+  notes?: string;
+}
+
+// ── Expense types ─────────────────────────────────────────────────────────────
+
+export interface Transaction {
+  id: string;
+  transaction_type: 'buy' | 'sell' | 'bid' | 'trade';
+  auction_id: string | null;
+  inventory_item_id: string | null;
+  description: string;
+  ig_amount: number | null;
+  ig_currency: string | null;
+  real_amount: number | null;
+  real_currency: string | null;
+  counterparty: string | null;
+  transaction_date: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTransactionPayload {
+  transaction_type: string;
+  auction_id?: string;
+  inventory_item_id?: string;
+  description: string;
+  ig_amount?: number;
+  ig_currency?: string;
+  real_amount?: number;
+  real_currency?: string;
+  counterparty?: string;
+  transaction_date: string;
+  notes?: string;
+}
+
+export interface UpdateTransactionPayload {
+  description?: string;
+  ig_amount?: number;
+  ig_currency?: string;
+  real_amount?: number;
+  real_currency?: string;
+  counterparty?: string;
+  notes?: string;
+}
+
+export interface CurrencySummary {
+  currency: string;
+  total: number;
+}
+
+export interface ProfitLoss {
+  ig_expenses: CurrencySummary[];
+  ig_income: CurrencySummary[];
+  real_expenses: CurrencySummary[];
+  real_income: CurrencySummary[];
+}
+
+export interface MonthlySummary {
+  month: string;
+  ig_expense: number;
+  ig_income: number;
+  real_expense: number;
+  real_income: number;
+}
+
 // ── Transmitter Server types ──────────────────────────────────────────────────
 
 export interface TransmitterServer {

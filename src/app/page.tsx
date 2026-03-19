@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format, parseISO, compareAsc } from "date-fns";
-import { Gavel, Timer, TrendingUp, Plus, Radio } from "lucide-react";
+import { Gavel, Timer, TrendingUp, Plus, Radio, Package, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,8 @@ import { AuctionDetail } from "@/components/AuctionDetail";
 import { useAuctionStore } from "@/lib/store";
 import { useTimerStore } from "@/lib/store";
 import { useTransmitterStore } from "@/lib/store";
+import { useInventoryStore } from "@/lib/store";
+import { useExpenseStore } from "@/lib/store";
 import type { Auction } from "@/lib/types";
 
 function formatMMSS(totalSeconds: number): string {
@@ -34,6 +36,8 @@ export default function DashboardPage() {
   const { alarms, fetchAlarms } = useTimerStore();
   const { servers: transmitterServers, fetchServers: fetchTransmitterServers } =
     useTransmitterStore();
+  const { categories, items: inventoryItems, fetchCategories, fetchItems } = useInventoryStore();
+  const { summary: expenseSummary, fetchProfitLoss } = useExpenseStore();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -42,7 +46,10 @@ export default function DashboardPage() {
     fetchActiveAuctions();
     fetchAlarms();
     fetchTransmitterServers();
-  }, [fetchActiveAuctions, fetchAlarms, fetchTransmitterServers]);
+    fetchCategories();
+    fetchItems();
+    fetchProfitLoss();
+  }, [fetchActiveAuctions, fetchAlarms, fetchTransmitterServers, fetchCategories, fetchItems, fetchProfitLoss]);
 
   // Sort active auctions by end_time ascending
   const activeAuctions = auctions
@@ -148,6 +155,88 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{activeTimers.length}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Inventory & Expense Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Inventory summary */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Inventory
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{inventoryItems.length}</p>
+            <p className="text-xs text-muted-foreground mb-2">total items</p>
+            {categories.length > 0 && (
+              <div className="space-y-1">
+                {categories.slice(0, 3).map((cat) => (
+                  <div key={cat.id} className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span>{cat.icon ?? "📦"}</span>
+                      {cat.name}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                      {inventoryItems.filter((i) => i.category_id === cat.id).length}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+            {categories.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                <Link href="/inventory" className="text-primary hover:underline underline-offset-4">
+                  Set up inventory
+                </Link>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Expenses P/L summary */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              In-Game P/L
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenseSummary ? (() => {
+              const igExpense = expenseSummary.ig_expenses.reduce((s, c) => s + c.total, 0);
+              const igIncome = expenseSummary.ig_income.reduce((s, c) => s + c.total, 0);
+              const netPL = igIncome - igExpense;
+              return (
+                <div>
+                  <p className={`text-3xl font-bold ${netPL >= 0 ? "text-green-500" : "text-destructive"}`}>
+                    {netPL >= 0 ? "+" : ""}{netPL.toLocaleString()}
+                  </p>
+                  <div className="flex gap-4 mt-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Income</p>
+                      <p className="text-xs font-semibold text-green-500">+{igIncome.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Expenses</p>
+                      <p className="text-xs font-semibold text-destructive">-{igExpense.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })() : (
+              <div>
+                <p className="text-3xl font-bold">—</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <Link href="/expenses" className="text-primary hover:underline underline-offset-4">
+                    Track expenses
+                  </Link>
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

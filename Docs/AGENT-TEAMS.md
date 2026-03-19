@@ -539,3 +539,7 @@ Layout di tmux:
 - [ ] CLAUDE.md created di project root (project context untuk semua agents)
 - [ ] Permission settings configured (allow cargo, npm, git commands)
 - [ ] Sufficient API credits for multi-agent token usage
+
+
+cd E:\codes\ark-script\auction-personal\src-tauri\target\release
+  tar -a -cf "Ark-Auction-Personal-v0.1.0-portable.zip" auction-personal.exe

@@ -475,3 +475,450 @@ pub async fn reset_transmitter_timer(
     .await?;
     get_transmitter_server_by_id(pool, id).await
 }
+
+// ─── Category CRUD ─────────────────────────────────────────────────────────
+
+pub async fn insert_category(pool: &SqlitePool, category: &Category) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO categories
+           (id, name, icon, color, sort_order, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"#,
+    )
+    .bind(&category.id)
+    .bind(&category.name)
+    .bind(&category.icon)
+    .bind(&category.color)
+    .bind(category.sort_order)
+    .bind(&category.created_at)
+    .bind(&category.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_all_categories(pool: &SqlitePool) -> Result<Vec<Category>, sqlx::Error> {
+    sqlx::query_as::<_, Category>(
+        "SELECT * FROM categories ORDER BY sort_order ASC, name ASC",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_category_by_id(
+    pool: &SqlitePool,
+    id: &str,
+) -> Result<Option<Category>, sqlx::Error> {
+    sqlx::query_as::<_, Category>("SELECT * FROM categories WHERE id = ?1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn update_category(
+    pool: &SqlitePool,
+    id: &str,
+    payload: &UpdateCategoryPayload,
+    updated_at: &str,
+) -> Result<Option<Category>, sqlx::Error> {
+    let existing = get_category_by_id(pool, id).await?;
+    let existing = match existing {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+
+    let name = payload.name.as_deref().unwrap_or(&existing.name);
+    let icon = payload.icon.as_ref().or(existing.icon.as_ref());
+    let color = payload.color.as_ref().or(existing.color.as_ref());
+    let sort_order = payload.sort_order.unwrap_or(existing.sort_order);
+
+    sqlx::query(
+        r#"UPDATE categories SET
+            name = ?1, icon = ?2, color = ?3, sort_order = ?4, updated_at = ?5
+           WHERE id = ?6"#,
+    )
+    .bind(name)
+    .bind(icon)
+    .bind(color)
+    .bind(sort_order)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    get_category_by_id(pool, id).await
+}
+
+pub async fn delete_category(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM categories WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+// ─── Category Fields ───────────────────────────────────────────────────────
+
+pub async fn insert_category_field(
+    pool: &SqlitePool,
+    field: &CategoryField,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO category_fields
+           (id, category_id, field_name, field_type, options, is_required, sort_order, created_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"#,
+    )
+    .bind(&field.id)
+    .bind(&field.category_id)
+    .bind(&field.field_name)
+    .bind(&field.field_type)
+    .bind(&field.options)
+    .bind(field.is_required as i32)
+    .bind(field.sort_order)
+    .bind(&field.created_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_fields_by_category(
+    pool: &SqlitePool,
+    category_id: &str,
+) -> Result<Vec<CategoryField>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, CategoryFieldRow>(
+        "SELECT * FROM category_fields WHERE category_id = ?1 ORDER BY sort_order ASC",
+    )
+    .bind(category_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(CategoryField::from).collect())
+}
+
+pub async fn delete_category_field(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM category_fields WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+// ─── Inventory Item CRUD ───────────────────────────────────────────────────
+
+pub async fn insert_inventory_item(
+    pool: &SqlitePool,
+    item: &InventoryItem,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO inventory_items
+           (id, category_id, auction_id, name, quantity, field_data, status,
+            acquired_at, notes, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"#,
+    )
+    .bind(&item.id)
+    .bind(&item.category_id)
+    .bind(&item.auction_id)
+    .bind(&item.name)
+    .bind(item.quantity)
+    .bind(&item.field_data)
+    .bind(&item.status)
+    .bind(&item.acquired_at)
+    .bind(&item.notes)
+    .bind(&item.created_at)
+    .bind(&item.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_all_inventory_items(
+    pool: &SqlitePool,
+) -> Result<Vec<InventoryItem>, sqlx::Error> {
+    sqlx::query_as::<_, InventoryItem>(
+        "SELECT * FROM inventory_items ORDER BY created_at DESC",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_inventory_by_category(
+    pool: &SqlitePool,
+    category_id: &str,
+) -> Result<Vec<InventoryItem>, sqlx::Error> {
+    sqlx::query_as::<_, InventoryItem>(
+        "SELECT * FROM inventory_items WHERE category_id = ?1 ORDER BY created_at DESC",
+    )
+    .bind(category_id)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_inventory_item_by_id(
+    pool: &SqlitePool,
+    id: &str,
+) -> Result<Option<InventoryItem>, sqlx::Error> {
+    sqlx::query_as::<_, InventoryItem>("SELECT * FROM inventory_items WHERE id = ?1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn update_inventory_item(
+    pool: &SqlitePool,
+    id: &str,
+    payload: &UpdateInventoryItemPayload,
+    updated_at: &str,
+) -> Result<Option<InventoryItem>, sqlx::Error> {
+    let existing = get_inventory_item_by_id(pool, id).await?;
+    let existing = match existing {
+        Some(i) => i,
+        None => return Ok(None),
+    };
+
+    let name = payload.name.as_deref().unwrap_or(&existing.name);
+    let quantity = payload.quantity.unwrap_or(existing.quantity);
+    let field_data = payload.field_data.as_ref().or(existing.field_data.as_ref());
+    let status = payload.status.as_deref().unwrap_or(&existing.status);
+    let notes = payload.notes.as_ref().or(existing.notes.as_ref());
+
+    sqlx::query(
+        r#"UPDATE inventory_items SET
+            name = ?1, quantity = ?2, field_data = ?3, status = ?4,
+            notes = ?5, updated_at = ?6
+           WHERE id = ?7"#,
+    )
+    .bind(name)
+    .bind(quantity)
+    .bind(field_data)
+    .bind(status)
+    .bind(notes)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    get_inventory_item_by_id(pool, id).await
+}
+
+pub async fn delete_inventory_item(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM inventory_items WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+pub async fn search_inventory_items(
+    pool: &SqlitePool,
+    query: &str,
+) -> Result<Vec<InventoryItem>, sqlx::Error> {
+    let pattern = format!("%{}%", query);
+    sqlx::query_as::<_, InventoryItem>(
+        "SELECT * FROM inventory_items WHERE name LIKE ?1 OR notes LIKE ?1 ORDER BY created_at DESC",
+    )
+    .bind(&pattern)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn count_items_by_category(
+    pool: &SqlitePool,
+) -> Result<Vec<CategoryItemCount>, sqlx::Error> {
+    sqlx::query_as::<_, CategoryItemCount>(
+        "SELECT category_id, CAST(COUNT(*) AS INTEGER) as count FROM inventory_items GROUP BY category_id",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+// ─── Transaction CRUD ──────────────────────────────────────────────────────
+
+pub async fn insert_transaction(
+    pool: &SqlitePool,
+    transaction: &Transaction,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO transactions
+           (id, transaction_type, auction_id, inventory_item_id, description,
+            ig_amount, ig_currency, real_amount, real_currency, counterparty,
+            transaction_date, notes, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)"#,
+    )
+    .bind(&transaction.id)
+    .bind(&transaction.transaction_type)
+    .bind(&transaction.auction_id)
+    .bind(&transaction.inventory_item_id)
+    .bind(&transaction.description)
+    .bind(transaction.ig_amount)
+    .bind(&transaction.ig_currency)
+    .bind(transaction.real_amount)
+    .bind(&transaction.real_currency)
+    .bind(&transaction.counterparty)
+    .bind(&transaction.transaction_date)
+    .bind(&transaction.notes)
+    .bind(&transaction.created_at)
+    .bind(&transaction.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_all_transactions(pool: &SqlitePool) -> Result<Vec<Transaction>, sqlx::Error> {
+    sqlx::query_as::<_, Transaction>(
+        "SELECT * FROM transactions ORDER BY transaction_date DESC",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_transactions_by_type(
+    pool: &SqlitePool,
+    transaction_type: &str,
+) -> Result<Vec<Transaction>, sqlx::Error> {
+    sqlx::query_as::<_, Transaction>(
+        "SELECT * FROM transactions WHERE transaction_type = ?1 ORDER BY transaction_date DESC",
+    )
+    .bind(transaction_type)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_transactions_by_date_range(
+    pool: &SqlitePool,
+    start_date: &str,
+    end_date: &str,
+) -> Result<Vec<Transaction>, sqlx::Error> {
+    sqlx::query_as::<_, Transaction>(
+        "SELECT * FROM transactions WHERE transaction_date >= ?1 AND transaction_date <= ?2 ORDER BY transaction_date DESC",
+    )
+    .bind(start_date)
+    .bind(end_date)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_transaction_by_id(
+    pool: &SqlitePool,
+    id: &str,
+) -> Result<Option<Transaction>, sqlx::Error> {
+    sqlx::query_as::<_, Transaction>("SELECT * FROM transactions WHERE id = ?1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn update_transaction(
+    pool: &SqlitePool,
+    id: &str,
+    payload: &UpdateTransactionPayload,
+    updated_at: &str,
+) -> Result<Option<Transaction>, sqlx::Error> {
+    let existing = get_transaction_by_id(pool, id).await?;
+    let existing = match existing {
+        Some(t) => t,
+        None => return Ok(None),
+    };
+
+    let description = payload.description.as_deref().unwrap_or(&existing.description);
+    let ig_amount = payload.ig_amount.or(existing.ig_amount);
+    let ig_currency = payload.ig_currency.as_ref().or(existing.ig_currency.as_ref());
+    let real_amount = payload.real_amount.or(existing.real_amount);
+    let real_currency = payload.real_currency.as_ref().or(existing.real_currency.as_ref());
+    let counterparty = payload.counterparty.as_ref().or(existing.counterparty.as_ref());
+    let notes = payload.notes.as_ref().or(existing.notes.as_ref());
+
+    sqlx::query(
+        r#"UPDATE transactions SET
+            description = ?1, ig_amount = ?2, ig_currency = ?3,
+            real_amount = ?4, real_currency = ?5, counterparty = ?6,
+            notes = ?7, updated_at = ?8
+           WHERE id = ?9"#,
+    )
+    .bind(description)
+    .bind(ig_amount)
+    .bind(ig_currency)
+    .bind(real_amount)
+    .bind(real_currency)
+    .bind(counterparty)
+    .bind(notes)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    get_transaction_by_id(pool, id).await
+}
+
+pub async fn delete_transaction(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM transactions WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+pub async fn get_expense_summary(pool: &SqlitePool) -> Result<ExpenseSummary, sqlx::Error> {
+    let ig_totals = sqlx::query_as::<_, CurrencySummary>(
+        r#"SELECT ig_currency as currency, COALESCE(SUM(ig_amount), 0.0) as total
+           FROM transactions
+           WHERE transaction_type IN ('buy', 'bid') AND ig_amount IS NOT NULL
+           GROUP BY ig_currency"#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let real_totals = sqlx::query_as::<_, CurrencySummary>(
+        r#"SELECT real_currency as currency, COALESCE(SUM(real_amount), 0.0) as total
+           FROM transactions
+           WHERE transaction_type IN ('buy', 'bid') AND real_amount IS NOT NULL
+           GROUP BY real_currency"#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(ExpenseSummary {
+        ig_totals,
+        real_totals,
+    })
+}
+
+pub async fn get_income_summary(pool: &SqlitePool) -> Result<ExpenseSummary, sqlx::Error> {
+    let ig_totals = sqlx::query_as::<_, CurrencySummary>(
+        r#"SELECT ig_currency as currency, COALESCE(SUM(ig_amount), 0.0) as total
+           FROM transactions
+           WHERE transaction_type = 'sell' AND ig_amount IS NOT NULL
+           GROUP BY ig_currency"#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let real_totals = sqlx::query_as::<_, CurrencySummary>(
+        r#"SELECT real_currency as currency, COALESCE(SUM(real_amount), 0.0) as total
+           FROM transactions
+           WHERE transaction_type = 'sell' AND real_amount IS NOT NULL
+           GROUP BY real_currency"#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(ExpenseSummary {
+        ig_totals,
+        real_totals,
+    })
+}
+
+pub async fn get_monthly_summary(
+    pool: &SqlitePool,
+) -> Result<Vec<MonthlySummaryRow>, sqlx::Error> {
+    sqlx::query_as::<_, MonthlySummaryRow>(
+        r#"SELECT
+            strftime('%Y-%m', transaction_date) as month,
+            COALESCE(SUM(CASE WHEN transaction_type IN ('buy', 'bid') THEN ig_amount ELSE 0 END), 0.0) as ig_expense,
+            COALESCE(SUM(CASE WHEN transaction_type = 'sell' THEN ig_amount ELSE 0 END), 0.0) as ig_income,
+            COALESCE(SUM(CASE WHEN transaction_type IN ('buy', 'bid') THEN real_amount ELSE 0 END), 0.0) as real_expense,
+            COALESCE(SUM(CASE WHEN transaction_type = 'sell' THEN real_amount ELSE 0 END), 0.0) as real_income
+           FROM transactions
+           GROUP BY strftime('%Y-%m', transaction_date)
+           ORDER BY month DESC"#,
+    )
+    .fetch_all(pool)
+    .await
+}
