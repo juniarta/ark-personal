@@ -128,6 +128,22 @@ export function AuctionForm({ onSuccess, onCancel }: AuctionFormProps) {
       if (parsed.increment_currency) setField("increment_currency", parsed.increment_currency);
       if (parsed.pickup_server) setField("pickup_server", parsed.pickup_server);
 
+      // Try to extract Discord copy-paste timestamp: "Username — HH:MM" or "— Today at HH:MM"
+      let discordPostTime: Date | null = null;
+      const discordTimeMatch = text.match(/—\s*(?:Today at\s+)?(\d{1,2}):(\d{2})/);
+      if (discordTimeMatch && !parsed.start_time && !linkTime) {
+        const hours = parseInt(discordTimeMatch[1], 10);
+        const minutes = parseInt(discordTimeMatch[2], 10);
+        if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+          discordPostTime = new Date();
+          discordPostTime.setHours(hours, minutes, 0, 0);
+          // If the time is in the future, it was probably yesterday
+          if (discordPostTime > new Date()) {
+            discordPostTime.setDate(discordPostTime.getDate() - 1);
+          }
+        }
+      }
+
       if (parsed.start_time) {
         const startLocal = toLocalDatetimeInput(parsed.start_time);
         setField("start_time", startLocal);
@@ -145,12 +161,35 @@ export function AuctionForm({ onSuccess, onCancel }: AuctionFormProps) {
             setTimeConflict(null);
           }
         }
+      } else if (discordPostTime) {
+        // Use Discord copy-paste timestamp as start time
+        const startLocal = format(discordPostTime, "yyyy-MM-dd'T'HH:mm");
+        setField("start_time", startLocal);
+        setField("source_type", "discord");
+        toast.info(`Detected post time: ${format(discordPostTime, "HH:mm, MMM d")} — please verify this is correct`);
       }
+
       if (parsed.end_time) {
         setField("end_time", toLocalDatetimeInput(parsed.end_time));
-      } else if (parsed.start_time && parsed.duration_hours) {
-        const endIso = addHours(parseISO(parsed.start_time), parsed.duration_hours).toISOString();
-        setField("end_time", toLocalDatetimeInput(endIso));
+      } else {
+        // Calculate end_time from start + duration
+        const durationHours = parsed.duration_hours;
+        if (durationHours) {
+          const startDate = parsed.start_time
+            ? parseISO(parsed.start_time)
+            : discordPostTime
+            ? discordPostTime
+            : new Date();
+          const endIso = addHours(startDate, durationHours).toISOString();
+          setField("end_time", toLocalDatetimeInput(endIso));
+        }
+      }
+
+      // Update duration_type if detected
+      if (parsed.duration_hours) {
+        const h = parsed.duration_hours;
+        const dType = h === 1 ? "1h" : h === 6 ? "6h" : h === 12 ? "12h" : h === 24 ? "24h" : h === 48 ? "48h" : "custom";
+        setField("duration_type", dType);
       }
 
       toast.success("Auto-filled fields from post text");

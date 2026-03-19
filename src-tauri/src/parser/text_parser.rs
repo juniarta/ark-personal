@@ -214,10 +214,10 @@ fn parse_bid(text: &str) -> Option<(f64, String)> {
 }
 
 /// Extract minimum bid increment and its currency.
-/// Patterns: "Minimum increments: 50 Tek Ceilings", "Min increment 100 ingots"
+/// Patterns: "Minimum increments: 50 Tek Ceilings", "Min increment 100 ingots", "Bid Increment: 100 Tek Ceilings"
 fn parse_min_increment(text: &str) -> Option<(f64, String)> {
     let re = Regex::new(
-        r"(?i)min(?:imum)?\s*increment[s]?\s*[:\s]\s*([\d,._]+)\s+([\w\s]+?)(?:\.|$|\n)"
+        r"(?i)(?:min(?:imum)?\s*increment[s]?|bid\s+increment)\s*[:\s]\s*([\d,._]+)\s+([\w\s]+?)(?:\.|$|\n)"
     ).ok()?;
 
     let caps = re.captures(text)?;
@@ -257,8 +257,18 @@ fn parse_end_time(text: &str) -> Option<(String, String)> {
 }
 
 /// Extract pickup server location.
-/// Patterns: "Winner pick on my Astraeos or Ragnarok server", "Pick up at my Island server"
+/// Patterns: "Winner pick on my Astraeos or Ragnarok server", "Pick up at my Island server", "Pickup: astraeos"
 fn parse_pickup_server(text: &str) -> Option<String> {
+    // Simple "Pickup: value" format first (Discord copy-paste style)
+    let re_simple = Regex::new(r"(?i)pickup\s*:\s*(.+?)(?:\.|$|\n)").ok()?;
+    if let Some(caps) = re_simple.captures(text) {
+        let server = caps.get(1)?.as_str().trim().to_string();
+        if !server.is_empty() {
+            return Some(server);
+        }
+    }
+
+    // Verbose format: "Winner pick on my Astraeos server"
     let re = Regex::new(
         r"(?i)(?:winner\s+)?pick\s*(?:up)?\s*(?:on|at)\s*(?:my\s+)?(.+?)(?:\s*server)?(?:\.|$|\n)"
     ).ok()?;
@@ -277,6 +287,19 @@ fn parse_pickup_server(text: &str) -> Option<String> {
 /// Heuristic: skip very short lines or lines with only emojis, take the first
 /// substantive line as the title.
 fn parse_title(text: &str) -> Option<String> {
+    // Check for explicit "Item name: ..." pattern first
+    let re_item = Regex::new(r"(?i)item\s*name\s*:\s*(.+?)(?:\n|$)").ok();
+    if let Some(re) = re_item {
+        if let Some(caps) = re.captures(text) {
+            let name = caps.get(1).map(|m| m.as_str().trim().to_string());
+            if let Some(ref n) = name {
+                if n.len() >= 3 {
+                    return name;
+                }
+            }
+        }
+    }
+
     for line in text.lines() {
         let cleaned: String = line
             .chars()
@@ -299,6 +322,10 @@ fn parse_title(text: &str) -> Option<String> {
             || lower.starts_with("pick")
             || lower.starts_with("winner")
             || lower.starts_with("good luck")
+            || lower.starts_with("item name")
+            || lower.starts_with("duration")
+            || lower.starts_with("credit")
+            || lower.starts_with("pickup")
         {
             continue;
         }
