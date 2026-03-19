@@ -207,8 +207,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {expenseSummary ? (() => {
-              const igExpense = expenseSummary.ig_expenses.reduce((s, c) => s + c.total, 0);
-              const igIncome = expenseSummary.ig_income.reduce((s, c) => s + c.total, 0);
+              const igData = (expenseSummary as { ig?: { income: number; expense: number; profit: number }[]; real?: { income: number; expense: number; profit: number }[] }).ig ?? [];
+              const igExpense = igData.reduce((s: number, c) => s + c.expense, 0);
+              const igIncome = igData.reduce((s: number, c) => s + c.income, 0);
               const netPL = igIncome - igExpense;
               return (
                 <div>

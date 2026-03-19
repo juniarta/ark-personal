@@ -224,16 +224,16 @@ export interface UpdateTransactionPayload {
   notes?: string;
 }
 
-export interface CurrencySummary {
-  currency: string;
-  total: number;
+export interface CurrencyProfitLoss {
+  currency: string | null;
+  income: number;
+  expense: number;
+  profit: number;
 }
 
 export interface ProfitLoss {
-  ig_expenses: CurrencySummary[];
-  ig_income: CurrencySummary[];
-  real_expenses: CurrencySummary[];
-  real_income: CurrencySummary[];
+  ig: CurrencyProfitLoss[];
+  real: CurrencyProfitLoss[];
 }
 
 export interface MonthlySummary {

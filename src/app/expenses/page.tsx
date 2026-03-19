@@ -88,13 +88,13 @@ export default function ExpensesPage() {
 
   // Summary calculations
   const igExpenseTotal =
-    summary?.ig_expenses.reduce((sum, c) => sum + c.total, 0) ?? 0;
+    (summary?.ig ?? []).reduce((sum: number, c) => sum + c.expense, 0);
   const igIncomeTotal =
-    summary?.ig_income.reduce((sum, c) => sum + c.total, 0) ?? 0;
+    (summary?.ig ?? []).reduce((sum: number, c) => sum + c.income, 0);
   const realExpenseTotal =
-    summary?.real_expenses.reduce((sum, c) => sum + c.total, 0) ?? 0;
+    (summary?.real ?? []).reduce((sum: number, c) => sum + c.expense, 0);
   const realIncomeTotal =
-    summary?.real_income.reduce((sum, c) => sum + c.total, 0) ?? 0;
+    (summary?.real ?? []).reduce((sum: number, c) => sum + c.income, 0);
 
   const igNetPL = igIncomeTotal - igExpenseTotal;
   const realNetPL = realIncomeTotal - realExpenseTotal;
@@ -263,9 +263,9 @@ export default function ExpensesPage() {
                   {igExpenseTotal.toLocaleString()}
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {summary?.ig_expenses.map((c) => (
-                    <p key={c.currency} className="text-xs text-muted-foreground">
-                      {c.total.toLocaleString()} {c.currency}
+                  {(summary?.ig ?? []).map((c) => (
+                    <p key={c.currency ?? 'unknown'} className="text-xs text-muted-foreground">
+                      {c.expense.toLocaleString()} {c.currency ?? 'unknown'}
                     </p>
                   ))}
                 </div>
@@ -284,9 +284,9 @@ export default function ExpensesPage() {
                   {igIncomeTotal.toLocaleString()}
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {summary?.ig_income.map((c) => (
-                    <p key={c.currency} className="text-xs text-muted-foreground">
-                      {c.total.toLocaleString()} {c.currency}
+                  {(summary?.ig ?? []).map((c) => (
+                    <p key={c.currency ?? 'unknown'} className="text-xs text-muted-foreground">
+                      {c.income.toLocaleString()} {c.currency ?? 'unknown'}
                     </p>
                   ))}
                 </div>
@@ -305,9 +305,9 @@ export default function ExpensesPage() {
                   {realExpenseTotal.toLocaleString()}
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {summary?.real_expenses.map((c) => (
-                    <p key={c.currency} className="text-xs text-muted-foreground">
-                      {c.total.toLocaleString()} {c.currency}
+                  {(summary?.real ?? []).map((c) => (
+                    <p key={c.currency ?? 'unknown'} className="text-xs text-muted-foreground">
+                      {c.expense.toLocaleString()} {c.currency ?? 'unknown'}
                     </p>
                   ))}
                 </div>
@@ -326,9 +326,9 @@ export default function ExpensesPage() {
                   {realIncomeTotal.toLocaleString()}
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {summary?.real_income.map((c) => (
-                    <p key={c.currency} className="text-xs text-muted-foreground">
-                      {c.total.toLocaleString()} {c.currency}
+                  {(summary?.real ?? []).map((c) => (
+                    <p key={c.currency ?? 'unknown'} className="text-xs text-muted-foreground">
+                      {c.income.toLocaleString()} {c.currency ?? 'unknown'}
                     </p>
                   ))}
                 </div>
