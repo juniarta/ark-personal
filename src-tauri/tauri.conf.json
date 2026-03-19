@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nickel-org/nickel.rs/master/docs/schema/tauri.conf.schema.json",
-  "productName": "Ark Auction Personal",
+  "productName": "Ark Personal Tools",
   "version": "0.1.0",
-  "identifier": "com.arkauction.personal",
+  "identifier": "com.arkpersonal.tools",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Ark Auction Personal",
+        "title": "Ark Personal Tools",
         "width": 1200,
         "height": 800,
         "resizable": true,

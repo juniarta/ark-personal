@@ -1,7 +1,7 @@
 [package]
 name = "auction-personal"
 version = "0.1.0"
-description = "Ark Auction Personal - Desktop auction tracker"
+description = "Ark Personal Tools - Desktop utility app"
 authors = ["you"]
 edition = "2021"
 

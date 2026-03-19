@@ -4,7 +4,7 @@ use windows::core::HSTRING;
 use windows::Data::Xml::Dom::XmlDocument;
 use windows::UI::Notifications::{ToastNotification, ToastNotificationManager};
 
-const APP_ID: &str = "com.arkauction.personal";
+const APP_ID: &str = "com.arkpersonal.tools";
 
 /// Build Toast XML and show the notification via Windows APIs.
 pub fn show_toast(

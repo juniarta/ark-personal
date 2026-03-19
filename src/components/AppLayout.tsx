@@ -26,7 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Logo */}
         <div className="h-14 flex items-center px-4 border-b border-border">
           <span className="text-lg font-bold tracking-tight text-primary">
-            ⚔ Ark Auction
+            ⚔ Ark Tools
           </span>
         </div>
 

@@ -1,8 +1,12 @@
+use std::sync::atomic::Ordering;
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     App, Manager,
 };
+
+use crate::ALERTS_PAUSED;
 
 /// Set up the system tray icon with context menu.
 pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
@@ -18,7 +22,7 @@ pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let _tray = TrayIconBuilder::new()
         .icon(icon)
         .menu(&menu)
-        .tooltip("Ark Auction Personal")
+        .tooltip("Ark Personal Tools")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => {
                 if let Some(window) = app.get_webview_window("main") {
@@ -27,8 +31,25 @@ pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "pause_alerts" => {
-                // TODO: Toggle scheduler pause state via app state
-                log::info!("Pause alerts toggled");
+                let was_paused = ALERTS_PAUSED.load(Ordering::Relaxed);
+                let now_paused = !was_paused;
+                ALERTS_PAUSED.store(now_paused, Ordering::Relaxed);
+
+                // Update menu item text to reflect current state
+                if let Some(item) = app.menu().and_then(|m| m.get("pause_alerts")) {
+                    if let Some(menu_item) = item.as_menuitem() {
+                        let _ = menu_item.set_text(if now_paused {
+                            "Resume Alerts"
+                        } else {
+                            "Pause Alerts"
+                        });
+                    }
+                }
+
+                log::info!(
+                    "Alerts {}",
+                    if now_paused { "paused" } else { "resumed" }
+                );
             }
             "quit" => {
                 app.exit(0);

@@ -7,8 +7,8 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ark Auction Personal",
-  description: "Track your Ark Survival auctions",
+  title: "Ark Personal Tools",
+  description: "Ark Personal Tools - auction tracker and utilities",
 };
 
 export default function RootLayout({
