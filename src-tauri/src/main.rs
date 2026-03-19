@@ -108,8 +108,12 @@ fn main() {
 
     app.run(|_app_handle, event| {
         // Keep running in background when window is closed (system tray behavior)
-        if let tauri::RunEvent::ExitRequested { api, .. } = event {
-            api.prevent_exit();
+        // But allow exit when triggered by app.exit() (e.g., tray Quit)
+        if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+            // code is Some when app.exit(code) was called explicitly
+            if code.is_none() {
+                api.prevent_exit();
+            }
         }
     });
 }
