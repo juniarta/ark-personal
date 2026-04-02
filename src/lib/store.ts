@@ -168,6 +168,7 @@ interface TransmitterStore {
   startTimer: (id: string) => Promise<TransmitterServer>;
   stopTimer: (id: string) => Promise<TransmitterServer>;
   resetTimer: (id: string) => Promise<TransmitterServer>;
+  syncTimer: (id: string, remainingSeconds: number) => Promise<TransmitterServer>;
 }
 
 export const useTransmitterStore = create<TransmitterStore>((set) => ({
@@ -235,6 +236,14 @@ export const useTransmitterStore = create<TransmitterStore>((set) => ({
 
   resetTimer: async (id) => {
     const updated = await tauri.resetTransmitterTimer(id);
+    set((state) => ({
+      servers: state.servers.map((s) => (s.id === id ? updated : s)),
+    }));
+    return updated;
+  },
+
+  syncTimer: async (id, remainingSeconds) => {
+    const updated = await tauri.syncTransmitterTimer(id, remainingSeconds);
     set((state) => ({
       servers: state.servers.map((s) => (s.id === id ? updated : s)),
     }));

@@ -65,6 +65,7 @@ fn main() {
             // Settings commands
             commands::settings::get_setting,
             commands::settings::set_setting,
+            commands::settings::check_for_update,
             // Transmitter commands
             commands::transmitter::add_transmitter_server,
             commands::transmitter::get_transmitter_servers,
@@ -73,6 +74,7 @@ fn main() {
             commands::transmitter::start_timer,
             commands::transmitter::stop_timer,
             commands::transmitter::reset_timer,
+            commands::transmitter::sync_timer,
             commands::transmitter::fetch_official_servers,
             // Inventory commands
             commands::inventory::create_category,

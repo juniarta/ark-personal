@@ -153,12 +153,30 @@ export async function resetTransmitterTimer(id: string): Promise<TransmitterServ
   return invoke<TransmitterServer>('reset_timer', { id });
 }
 
+export async function syncTransmitterTimer(id: string, remainingSeconds: number): Promise<TransmitterServer> {
+  const invoke = await getInvoke();
+  return invoke<TransmitterServer>('sync_timer', { id, remaining_seconds: remainingSeconds });
+}
+
 export async function fetchOfficialServers(): Promise<ArkOfficialServer[]> {
   const invoke = await getInvoke();
   return invoke<ArkOfficialServer[]>('fetch_official_servers');
 }
 
 // ── Settings commands ─────────────────────────────────────────────────────────
+
+export interface UpdateInfo {
+  current_version: string;
+  latest_version: string;
+  has_update: boolean;
+  download_url: string;
+  release_notes: string;
+}
+
+export async function checkForUpdate(): Promise<UpdateInfo> {
+  const invoke = await getInvoke();
+  return invoke<UpdateInfo>('check_for_update');
+}
 
 export async function getSetting(key: string): Promise<string | null> {
   const invoke = await getInvoke();

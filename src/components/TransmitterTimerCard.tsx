@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Square, RotateCcw, Trash2 } from "lucide-react";
+import { Play, Square, RotateCcw, Trash2, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -34,11 +35,13 @@ function formatCycleDuration(seconds: number): string {
 }
 
 export function TransmitterTimerCard({ server }: TransmitterTimerCardProps) {
-  const { startTimer, stopTimer, resetTimer, removeServer } = useTransmitterStore();
+  const { startTimer, stopTimer, resetTimer, syncTimer, removeServer } = useTransmitterStore();
 
   // Client-side countdown state
   const [remaining, setRemaining] = useState<number>(server.timer_duration_s);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncInput, setSyncInput] = useState(""); // "MM:SS" format
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoResetInProgress = useRef(false);
 
@@ -132,6 +135,35 @@ export function TransmitterTimerCard({ server }: TransmitterTimerCardProps) {
       toast.error(String(e));
     } finally {
       setConfirmRemoveOpen(false);
+    }
+  };
+
+  const handleSync = async () => {
+    // Parse MM:SS input
+    const parts = syncInput.trim().split(":");
+    let totalSeconds = 0;
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0], 10);
+      const secs = parseInt(parts[1], 10);
+      if (!isNaN(mins) && !isNaN(secs)) totalSeconds = mins * 60 + secs;
+    } else if (parts.length === 1) {
+      // Just minutes
+      const mins = parseInt(parts[0], 10);
+      if (!isNaN(mins)) totalSeconds = mins * 60;
+    }
+
+    if (totalSeconds <= 0 || totalSeconds > server.timer_duration_s) {
+      toast.error(`Enter a time between 0:01 and ${formatMMSS(server.timer_duration_s)}`);
+      return;
+    }
+
+    try {
+      await syncTimer(server.id, totalSeconds);
+      toast.success(`Synced to ${formatMMSS(totalSeconds)} remaining`);
+      setSyncOpen(false);
+      setSyncInput("");
+    } catch (e) {
+      toast.error(String(e));
     }
   };
 
@@ -229,14 +261,49 @@ export function TransmitterTimerCard({ server }: TransmitterTimerCardProps) {
             <Button
               size="sm"
               variant="outline"
+              onClick={() => { setSyncInput(""); setSyncOpen(true); }}
+              title="Sync to server time"
+            >
+              <Timer className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={handleReset}
-              title="Reset timer"
+              title="Reset to full duration"
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Sync Timer Dialog */}
+      <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Sync Timer</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Enter the remaining time you see on the server transmitter:
+          </p>
+          <Input
+            placeholder="MM:SS (e.g. 12:30)"
+            value={syncInput}
+            onChange={(e) => setSyncInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSync(); }}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSyncOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSync}>
+              Sync
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Remove Dialog */}
       <Dialog open={confirmRemoveOpen} onOpenChange={setConfirmRemoveOpen}>

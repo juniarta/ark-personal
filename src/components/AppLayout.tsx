@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Gavel, Timer, Radio, Package, Wallet } from "lucide-react";
+import { LayoutDashboard, Gavel, Timer, Radio, Package, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/transmitter", label: "Transmitter", icon: Radio },
   { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/expenses", label: "Expenses", icon: Wallet },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 interface AppLayoutProps {

@@ -162,6 +162,33 @@ pub async fn reset_timer(
         .ok_or_else(|| format!("Transmitter server not found: {}", id))
 }
 
+/// Sync timer to a specific remaining time (e.g., user sees 2:15 left on server).
+/// Sets started_at = now - (duration - remaining_seconds) so countdown matches.
+#[tauri::command]
+pub async fn sync_timer(
+    db: State<'_, DbPool>,
+    id: String,
+    remaining_seconds: i32,
+) -> Result<TransmitterServer, String> {
+    // Get the server to know its timer_duration_s
+    let server = repository::get_transmitter_server_by_id(&db, &id)
+        .await
+        .map_err(|e| format!("Failed to get server: {}", e))?
+        .ok_or_else(|| format!("Transmitter server not found: {}", id))?;
+
+    let remaining = remaining_seconds.max(0).min(server.timer_duration_s);
+    let elapsed = server.timer_duration_s - remaining;
+
+    // Set started_at = now - elapsed, so remaining = duration - elapsed
+    let started_at = Utc::now() - chrono::Duration::seconds(elapsed as i64);
+    let started_at_str = started_at.to_rfc3339();
+
+    repository::start_transmitter_timer(&db, &id, &started_at_str)
+        .await
+        .map_err(|e| format!("Failed to sync timer: {}", e))?
+        .ok_or_else(|| format!("Transmitter server not found: {}", id))
+}
+
 #[tauri::command]
 pub async fn fetch_official_servers(
     cache: State<'_, Mutex<ServerListCache>>,

@@ -28,3 +28,5 @@ coverage/
 # Debug logs
 *.log
 npm-debug.log*
+
+settings.local.json
