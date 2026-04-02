@@ -48,6 +48,12 @@ pub struct ServerListCache {
     pub fetched_at: Option<chrono::DateTime<Utc>>,
 }
 
+impl Default for ServerListCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServerListCache {
     pub fn new() -> Self {
         ServerListCache {
