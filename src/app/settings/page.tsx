@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import packageJson from "../../../package.json";
 import { toast } from "sonner";
 import {
   RefreshCw,
@@ -156,7 +157,7 @@ export default function SettingsPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Version</span>
-              <span className="font-mono">v0.1.0</span>
+              <span className="font-mono">v{packageJson.version}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Platform</span>

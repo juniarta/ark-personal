@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Gavel, Timer, Radio, Package, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import packageJson from "../../package.json";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -61,7 +62,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Footer */}
         <div className="p-3 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">v0.1.0</p>
+          <p className="text-xs text-muted-foreground text-center">v{packageJson.version}</p>
         </div>
       </aside>
 

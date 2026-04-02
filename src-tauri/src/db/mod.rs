@@ -5,16 +5,16 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
 use tauri::AppHandle;
-use tauri::Manager;
 
 pub type DbPool = SqlitePool;
 
 /// Initialize the SQLite database, run migrations, and return the pool.
-pub async fn init_db(app: &AppHandle) -> Result<DbPool, Box<dyn std::error::Error>> {
-    let app_dir = app
-        .path()
-        .app_data_dir()
-        .expect("Failed to get app data dir");
+pub async fn init_db(_app: &AppHandle) -> Result<DbPool, Box<dyn std::error::Error>> {
+    let app_dir = std::env::current_exe()
+        .expect("Failed to get current exe path")
+        .parent()
+        .expect("Failed to get exe directory")
+        .to_path_buf();
 
     std::fs::create_dir_all(&app_dir)?;
 
