@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::db::models::*;
 use crate::db::repository;
 use crate::db::DbPool;
+use crate::notifications::windows_toast;
 
 #[tauri::command]
 pub async fn create_alarm(
@@ -44,12 +45,21 @@ pub async fn create_alarm(
     let now = Utc::now().to_rfc3339();
     let id = Uuid::new_v4().to_string();
 
+    // Timers start running immediately — record when they started
+    let started_at = if payload.alarm_type == "timer" {
+        Some(now.clone())
+    } else {
+        None
+    };
+
     let alarm = Alarm {
         id,
         label: payload.label,
         alarm_type: payload.alarm_type,
         trigger_at: payload.trigger_at,
+        original_duration_ms: payload.duration_ms,
         duration_ms: payload.duration_ms,
+        started_at,
         is_active: true,
         repeat_rule: payload.repeat_rule,
         created_at: now.clone(),
@@ -115,8 +125,26 @@ pub async fn delete_alarm(db: State<'_, DbPool>, id: String) -> Result<(), Strin
 
 #[tauri::command]
 pub async fn pause_timer(db: State<'_, DbPool>, id: String) -> Result<Alarm, String> {
-    let now = Utc::now().to_rfc3339();
-    repository::set_alarm_active(&db, &id, false, &now)
+    let alarm = repository::get_alarm_by_id(&db, &id)
+        .await
+        .map_err(|e| format!("Failed to get alarm: {}", e))?
+        .ok_or_else(|| format!("Alarm not found: {}", id))?;
+
+    let now = Utc::now();
+    let now_str = now.to_rfc3339();
+
+    // Compute how much time is left so we can persist it
+    let remaining_ms = if let (Some(started_str), Some(duration)) = (&alarm.started_at, alarm.duration_ms) {
+        let started = DateTime::parse_from_rfc3339(started_str)
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or(now);
+        let elapsed_ms = (now - started).num_milliseconds().max(0);
+        (duration - elapsed_ms).max(0)
+    } else {
+        alarm.duration_ms.unwrap_or(0)
+    };
+
+    repository::pause_alarm(&db, &id, remaining_ms, &now_str)
         .await
         .map_err(|e| format!("Failed to pause timer: {}", e))?
         .ok_or_else(|| format!("Alarm not found: {}", id))
@@ -125,8 +153,45 @@ pub async fn pause_timer(db: State<'_, DbPool>, id: String) -> Result<Alarm, Str
 #[tauri::command]
 pub async fn resume_timer(db: State<'_, DbPool>, id: String) -> Result<Alarm, String> {
     let now = Utc::now().to_rfc3339();
-    repository::set_alarm_active(&db, &id, true, &now)
+    repository::resume_alarm(&db, &id, &now, &now)
         .await
         .map_err(|e| format!("Failed to resume timer: {}", e))?
+        .ok_or_else(|| format!("Alarm not found: {}", id))
+}
+
+#[tauri::command]
+pub async fn notify_timer_done(label: String) -> Result<(), String> {
+    windows_toast::show_timer_toast(&label)
+}
+
+#[tauri::command]
+pub async fn mark_timer_done(db: State<'_, DbPool>, id: String) -> Result<Alarm, String> {
+    let now = Utc::now().to_rfc3339();
+    repository::mark_timer_done(&db, &id, &now)
+        .await
+        .map_err(|e| format!("Failed to mark timer done: {}", e))?
+        .ok_or_else(|| format!("Alarm not found: {}", id))
+}
+
+#[tauri::command]
+pub async fn replay_timer(db: State<'_, DbPool>, id: String) -> Result<Alarm, String> {
+    let alarm = repository::get_alarm_by_id(&db, &id)
+        .await
+        .map_err(|e| format!("Failed to get alarm: {}", e))?
+        .ok_or_else(|| format!("Alarm not found: {}", id))?;
+
+    // original_duration_ms is set for all new timers.
+    // For old timers created before this feature, fall back to duration_ms
+    // (which may be 0 if already done — in that case we cannot replay).
+    let original_ms = alarm.original_duration_ms
+        .or(alarm.duration_ms.filter(|&d| d > 0))
+        .ok_or_else(|| {
+            "Cannot replay: original duration unknown. Delete this timer and create a new one.".to_string()
+        })?;
+
+    let now = Utc::now().to_rfc3339();
+    repository::replay_timer_with_duration(&db, &id, original_ms, &now, &now)
+        .await
+        .map_err(|e| format!("Failed to replay timer: {}", e))?
         .ok_or_else(|| format!("Alarm not found: {}", id))
 }

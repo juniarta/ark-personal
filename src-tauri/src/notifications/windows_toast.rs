@@ -6,6 +6,42 @@ use windows::UI::Notifications::{ToastNotification, ToastNotificationManager};
 
 const APP_ID: &str = "com.arkpersonal.tools";
 
+/// Show a timer-done alarm notification (looping alarm sound, persistent).
+pub fn show_timer_toast(label: &str) -> Result<(), String> {
+    let label = xml_escape(label);
+    let xml = format!(
+        r#"<toast scenario="alarm">
+  <visual>
+    <binding template="ToastGeneric">
+      <text>&#x23F0; Timer Done</text>
+      <text>{label}</text>
+    </binding>
+  </visual>
+  <actions>
+    <action content="Dismiss" activationType="system" arguments="dismiss" />
+  </actions>
+  <audio src="ms-winsoundevent:Notification.Looping.Alarm2" loop="true" />
+</toast>"#
+    );
+
+    let doc = XmlDocument::new().map_err(|e| format!("XmlDocument::new failed: {}", e))?;
+    doc.LoadXml(&HSTRING::from(&xml))
+        .map_err(|e| format!("LoadXml failed: {}", e))?;
+
+    let toast = ToastNotification::CreateToastNotification(&doc)
+        .map_err(|e| format!("CreateToastNotification failed: {}", e))?;
+
+    let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(APP_ID))
+        .map_err(|e| format!("CreateToastNotifier failed: {}", e))?;
+
+    notifier
+        .Show(&toast)
+        .map_err(|e| format!("Show toast failed: {}", e))?;
+
+    log::info!("Timer done toast sent for: {}", label);
+    Ok(())
+}
+
 /// Build Toast XML and show the notification via Windows APIs.
 pub fn show_toast(
     auction_id: &str,

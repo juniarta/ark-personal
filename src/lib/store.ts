@@ -97,6 +97,8 @@ interface TimerStore {
   deleteAlarm: (id: string) => Promise<void>;
   pauseTimer: (id: string) => Promise<Alarm>;
   resumeTimer: (id: string) => Promise<Alarm>;
+  markTimerDone: (id: string) => Promise<Alarm>;
+  replayTimer: (id: string) => Promise<Alarm>;
 }
 
 export const useTimerStore = create<TimerStore>((set) => ({
@@ -145,6 +147,22 @@ export const useTimerStore = create<TimerStore>((set) => ({
 
   resumeTimer: async (id) => {
     const updated = await tauri.resumeTimer(id);
+    set((state) => ({
+      alarms: state.alarms.map((a) => (a.id === id ? updated : a)),
+    }));
+    return updated;
+  },
+
+  markTimerDone: async (id) => {
+    const updated = await tauri.markTimerDone(id);
+    set((state) => ({
+      alarms: state.alarms.map((a) => (a.id === id ? updated : a)),
+    }));
+    return updated;
+  },
+
+  replayTimer: async (id) => {
+    const updated = await tauri.replayTimer(id);
     set((state) => ({
       alarms: state.alarms.map((a) => (a.id === id ? updated : a)),
     }));

@@ -51,5 +51,26 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await?;
 
+    // ALTER TABLE migrations are not idempotent — ignore "duplicate column" errors
+    if let Err(e) = sqlx::raw_sql(include_str!("migrations/004_alarm_started_at.sql"))
+        .execute(pool)
+        .await
+    {
+        let msg = e.to_string();
+        if !msg.contains("duplicate column") {
+            return Err(e);
+        }
+    }
+
+    if let Err(e) = sqlx::raw_sql(include_str!("migrations/005_alarm_original_duration.sql"))
+        .execute(pool)
+        .await
+    {
+        let msg = e.to_string();
+        if !msg.contains("duplicate column") {
+            return Err(e);
+        }
+    }
+
     Ok(())
 }

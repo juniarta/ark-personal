@@ -99,6 +99,21 @@ export async function pauseTimer(id: string): Promise<Alarm> {
   return invoke<Alarm>('pause_timer', { id });
 }
 
+export async function notifyTimerDone(label: string): Promise<void> {
+  const invoke = await getInvoke();
+  return invoke<void>('notify_timer_done', { label });
+}
+
+export async function markTimerDone(id: string): Promise<Alarm> {
+  const invoke = await getInvoke();
+  return invoke<Alarm>('mark_timer_done', { id });
+}
+
+export async function replayTimer(id: string): Promise<Alarm> {
+  const invoke = await getInvoke();
+  return invoke<Alarm>('replay_timer', { id });
+}
+
 export async function resumeTimer(id: string): Promise<Alarm> {
   const invoke = await getInvoke();
   return invoke<Alarm>('resume_timer', { id });
@@ -155,7 +170,7 @@ export async function resetTransmitterTimer(id: string): Promise<TransmitterServ
 
 export async function syncTransmitterTimer(id: string, remainingSeconds: number): Promise<TransmitterServer> {
   const invoke = await getInvoke();
-  return invoke<TransmitterServer>('sync_timer', { id, remaining_seconds: remainingSeconds });
+  return invoke<TransmitterServer>('sync_timer', { id, remainingSeconds });
 }
 
 export async function fetchOfficialServers(): Promise<ArkOfficialServer[]> {

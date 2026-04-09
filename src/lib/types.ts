@@ -57,6 +57,8 @@ export interface Alarm {
   alarm_type: 'alarm' | 'timer' | 'stopwatch';
   trigger_at: string | null;
   duration_ms: number | null;
+  original_duration_ms: number | null;
+  started_at: string | null;
   is_active: boolean;
   repeat_rule: string | null;
   created_at: string;

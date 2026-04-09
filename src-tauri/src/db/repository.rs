@@ -211,14 +211,16 @@ pub async fn expire_past_auctions(
 pub async fn insert_alarm(pool: &SqlitePool, alarm: &Alarm) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"INSERT INTO alarms
-           (id, label, alarm_type, trigger_at, duration_ms, is_active, repeat_rule, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
+           (id, label, alarm_type, trigger_at, duration_ms, original_duration_ms, started_at, is_active, repeat_rule, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"#,
     )
     .bind(&alarm.id)
     .bind(&alarm.label)
     .bind(&alarm.alarm_type)
     .bind(&alarm.trigger_at)
     .bind(alarm.duration_ms)
+    .bind(alarm.original_duration_ms)
+    .bind(&alarm.started_at)
     .bind(alarm.is_active as i32)
     .bind(&alarm.repeat_rule)
     .bind(&alarm.created_at)
@@ -288,18 +290,81 @@ pub async fn delete_alarm_record(pool: &SqlitePool, id: &str) -> Result<bool, sq
     Ok(result.rows_affected() > 0)
 }
 
-pub async fn set_alarm_active(
+/// Pause a timer: save remaining ms and clear started_at.
+pub async fn pause_alarm(
     pool: &SqlitePool,
     id: &str,
-    active: bool,
+    remaining_ms: i64,
     updated_at: &str,
 ) -> Result<Option<Alarm>, sqlx::Error> {
-    sqlx::query("UPDATE alarms SET is_active = ?1, updated_at = ?2 WHERE id = ?3")
-        .bind(active as i32)
-        .bind(updated_at)
-        .bind(id)
-        .execute(pool)
-        .await?;
+    sqlx::query(
+        "UPDATE alarms SET is_active = 0, duration_ms = ?1, started_at = NULL, updated_at = ?2 WHERE id = ?3",
+    )
+    .bind(remaining_ms)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+    get_alarm_by_id(pool, id).await
+}
+
+/// Resume a timer: mark active and record when it started.
+pub async fn resume_alarm(
+    pool: &SqlitePool,
+    id: &str,
+    started_at: &str,
+    updated_at: &str,
+) -> Result<Option<Alarm>, sqlx::Error> {
+    sqlx::query(
+        "UPDATE alarms SET is_active = 1, started_at = ?1, updated_at = ?2 WHERE id = ?3",
+    )
+    .bind(started_at)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+    get_alarm_by_id(pool, id).await
+}
+
+/// Mark a timer as done: inactive, duration = 0, started_at cleared.
+pub async fn mark_timer_done(
+    pool: &SqlitePool,
+    id: &str,
+    updated_at: &str,
+) -> Result<Option<Alarm>, sqlx::Error> {
+    sqlx::query(
+        "UPDATE alarms SET is_active = 0, duration_ms = 0, started_at = NULL, updated_at = ?1 WHERE id = ?2",
+    )
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
+    get_alarm_by_id(pool, id).await
+}
+
+/// Replay a timer: restore to a known duration and start it running again.
+pub async fn replay_timer_with_duration(
+    pool: &SqlitePool,
+    id: &str,
+    duration_ms: i64,
+    started_at: &str,
+    updated_at: &str,
+) -> Result<Option<Alarm>, sqlx::Error> {
+    sqlx::query(
+        r#"UPDATE alarms SET
+            is_active = 1,
+            duration_ms = ?1,
+            original_duration_ms = ?1,
+            started_at = ?2,
+            updated_at = ?3
+           WHERE id = ?4"#,
+    )
+    .bind(duration_ms)
+    .bind(started_at)
+    .bind(updated_at)
+    .bind(id)
+    .execute(pool)
+    .await?;
     get_alarm_by_id(pool, id).await
 }
 

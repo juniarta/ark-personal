@@ -62,6 +62,9 @@ fn main() {
             commands::timer::delete_alarm,
             commands::timer::pause_timer,
             commands::timer::resume_timer,
+            commands::timer::notify_timer_done,
+            commands::timer::mark_timer_done,
+            commands::timer::replay_timer,
             // Settings commands
             commands::settings::get_setting,
             commands::settings::set_setting,
