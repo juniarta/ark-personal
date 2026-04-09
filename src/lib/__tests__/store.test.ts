@@ -59,6 +59,8 @@ function makeAlarm(id: string, is_active = true): Alarm {
     alarm_type: 'timer',
     trigger_at: null,
     duration_ms: 300000,
+    original_duration_ms: 300000,
+    started_at: null,
     is_active,
     repeat_rule: null,
     created_at: '2026-03-19T00:00:00Z',

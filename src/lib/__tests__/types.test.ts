@@ -45,6 +45,8 @@ function makeAlarm(overrides: Partial<Alarm> = {}): Alarm {
     alarm_type: 'alarm',
     trigger_at: '2026-03-20T08:00:00Z',
     duration_ms: null,
+    original_duration_ms: null,
+    started_at: null,
     is_active: true,
     repeat_rule: null,
     created_at: '2026-03-19T00:00:00Z',
